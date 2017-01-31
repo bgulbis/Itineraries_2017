@@ -8,27 +8,29 @@ interview_times <- read_rds("data/tidy/interview_times.Rds")
 interview_sessions <- read_csv("data/raw/interview_sessions.csv")
 
 # for (i in 1:nrow(interview_times)) {
-for(i in 1:2) { # for testing
+for(i in c(1:2, 7:9)) { # for testing
     df <- interview_times[i, ]
 
     # need to replace credentials with a variable
-    candidate <- paste(df$first_name, paste0(df$last_name, ",")) #, "PharmD Candidate")
+    candidate <- paste(df$first_name, df$last_name)
     interview_date <- format(df$interview_date, "%A, %B %e, %Y")
 
     if (!df$pm) {
         start_time <- hm("08:00")
-        sessions <- interview_sessions
+        sid <- 3:7
+        sessions <- mutate(interview_sessions, interview_order = session_id)
     } else {
         start_time <- hm("11:15")
         sessions <- interview_sessions %>%
             filter(!is.na(pm)) %>%
-            arrange(pm)
+            mutate(interview_order = pm) %>%
+            arrange(interview_order)
+        sid <- 6:10
     }
 
-    assignments <- tibble(
-        assignment = rep(1:5, each = 5),
-        session_order = rep(1:5, times = 5)
-    )
+    sessions$interview_order[sid] <- sid[c(df$assignment:length(sid), 1:(df$assignment - 1))][1:5]
+
+    sessions <- arrange(sessions, interview_order)
 
     times <- sessions %>%
         mutate(cum_duration = cumsum(duration),
