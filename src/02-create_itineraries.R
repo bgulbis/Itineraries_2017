@@ -1,14 +1,17 @@
 # create itineraries
 
 library(tidyverse)
+library(stringr)
 library(lubridate)
 library(ReporteRs)
 
 interview_times <- read_rds("data/tidy/interview_times.Rds")
 interview_sessions <- read_csv("data/raw/interview_sessions.csv")
+interviewers <- read_csv("data/raw/interviewers.csv")
+interviewer_assignments <- read_csv("data/raw/interviewer_assignments.csv")
 
-# for (i in 1:nrow(interview_times)) {
-for(i in c(1:2, 7:9)) { # for testing
+for (i in 1:nrow(interview_times)) {
+# for(i in c(1:2, 7:9)) { # for testing
     df <- interview_times[i, ]
 
     # need to replace credentials with a variable
@@ -28,6 +31,12 @@ for(i in c(1:2, 7:9)) { # for testing
         sid <- 6:10
     }
 
+    if (df$lcep) {
+        sessions <- filter(sessions, lcep | is.na(lcep))
+    } else {
+        sessions <- filter(sessions, !lcep | is.na(lcep))
+    }
+
     sessions$interview_order[sid] <- sid[c(df$assignment:length(sid), 1:(df$assignment - 1))][1:5]
 
     sessions <- arrange(sessions, interview_order)
@@ -41,12 +50,17 @@ for(i in c(1:2, 7:9)) { # for testing
                                       format(stop_time, "%I:%M %p"),
                                       sep = " - "))
 
-    activities <- sessions$session
+    attendees <- left_join(sessions, interviewer_assignments, by = "session_id") %>%
+        left_join(interviewers, by = "initials") %>%
+        group_by(session_id) %>%
+        summarize(attendee = str_c(interviewer, collapse = "; "))
+
+    sessions <- left_join(sessions, attendees, by = "session_id")
 
     df_itinerary <- tibble(
         Time = times$itinerary_time,
-        `Interview Activities` = activities,
-        Attendees = "attendees"
+        `Interview Activities` = sessions$session,
+        Attendees = sessions$attendee
     )
 
     tbl_itinerary <- vanilla.table(df_itinerary) %>%
