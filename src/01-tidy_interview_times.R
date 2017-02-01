@@ -7,7 +7,8 @@ library(lubridate)
 interview_times <- read_csv("data/raw/interview_times.csv") %>%
     rename(first_name = `First Name`,
            last_name = `Last Name`,
-           email = Email) %>%
+           email = Email,
+           lcep = LCEP) %>%
     extract(`Sign Up Items`,
             c("interview_date", "pm"),
             "(02/[0-9]{2}/2017) (8|11)") %>%
