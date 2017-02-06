@@ -5,10 +5,20 @@ library(stringr)
 library(lubridate)
 library(ReporteRs)
 
+
+
 interview_times <- read_rds("data/tidy/interview_times.Rds")
 interview_sessions <- read_csv("data/raw/interview_sessions.csv")
 interviewers <- read_csv("data/raw/interviewers.csv")
-interviewer_assignments <- read_csv("data/raw/interviewer_assignments.csv")
+
+interview_days <- list("day1" = "2017/02/13",
+                       "day2" = "2017/02/17",
+                       "day3" = "2017/02/20")
+
+interviewer_assignments <- read_csv("data/raw/interviewer_assignments.csv") %>%
+    gather(key, value, day1:day3) %>%
+    dmap_at("key", str_replace_all, pattern = interview_days) %>%
+    dmap_at("key", ymd)
 
 for (i in 1:nrow(interview_times)) {
 # for(i in c(1:2, 7:9)) { # for testing
@@ -23,13 +33,22 @@ for (i in 1:nrow(interview_times)) {
         sid <- 3:7
         sessions <- mutate(interview_sessions, interview_order = session_id)
     } else {
-        start_time <- hm("11:15")
+        if (df$lcep) {
+            start_time <- hm("11:30")
+        } else {
+            start_time <- hm("11:15")
+        }
+
         sessions <- interview_sessions %>%
             filter(!is.na(pm)) %>%
             mutate(interview_order = pm) %>%
             arrange(interview_order)
         sid <- 6:10
     }
+
+    assignments <- interviewer_assignments %>%
+        inner_join(df["interview_date"], by = c("key" = "interview_date")) %>%
+        filter(value)
 
     if (df$lcep) {
         sessions <- filter(sessions, lcep | is.na(lcep))
@@ -50,7 +69,7 @@ for (i in 1:nrow(interview_times)) {
                                       format(stop_time, "%I:%M %p"),
                                       sep = " - "))
 
-    attendees <- left_join(sessions, interviewer_assignments, by = "session_id") %>%
+    attendees <- left_join(sessions, assignments, by = "session_id") %>%
         left_join(interviewers, by = "initials") %>%
         group_by(session_id) %>%
         summarize(attendee = str_c(interviewer, collapse = "; "))
