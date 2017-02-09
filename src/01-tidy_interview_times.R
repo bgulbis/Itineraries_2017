@@ -15,6 +15,8 @@ interview_times <- read_csv("data/raw/interview_times.csv") %>%
     dmap_at("interview_date", mdy) %>%
     dmap_at("pm", ~ .x == "11") %>%
     group_by(interview_date, pm) %>%
-    mutate(assignment = seq(n()))
+    mutate(assignment = seq(n()),
+           credentials = "PharmD Candidate")
 
 write_rds(interview_times, "data/tidy/interview_times.Rds", "gz")
+write_csv(interview_times, "data/external/interview_schedule.csv")
