@@ -76,18 +76,21 @@ for (i in 1:nrow(interview_times)) {
 
     sessions <- left_join(sessions, attendees, by = "session_id")
 
-    df_itinerary <- tibble(
+    tbl_itinerary <- tibble(
         Time = times$itinerary_time,
         `Interview Activities` = sessions$session,
         Attendees = sessions$attendee
-    )
-
-    tbl_itinerary <- vanilla.table(df_itinerary) %>%
-        setFlexTableWidths(c(1.85, 1.85, 2.9)) %>%
+    ) %>%
+        FlexTable(
+            body.cell.props = cellProperties(padding = 2),
+            body.par.props = parProperties(text.align = "center"),
+            body.text.props = textProperties(font.family = "Times"),
+            header.cell.props = cellProperties(padding = 2),
+            header.par.props = parProperties(text.align = "center"),
+            header.text.props = textProperties(font.weight = "bold", font.family = "Times")
+        ) %>%
+        setFlexTableWidths(c(1.9, 2.2, 2.5)) %>%
         setZebraStyle(odd = "light blue", even = "white")
-    tbl_itinerary[, to = "header"] <- textProperties(font.weight = "bold")
-    tbl_itinerary[, to = "header"] <- parCenter()
-    tbl_itinerary[] <- parCenter()
 
     mydoc <- docx(template = "ref/template_itinerary.docx") %>%
         map_title(stylenames = "Candidate") %>%
