@@ -1,20 +1,19 @@
 # get interview times
 
 library(tidyverse)
-library(stringr)
 library(lubridate)
 
 interview_times <- read_csv("data/raw/interview_times.csv") %>%
     rename(first_name = `First Name`,
            last_name = `Last Name`,
            email = Email,
-           lcep = LCEP) %>%
-    extract(`Sign Up Items`,
-            c("interview_date", "pm"),
-            "(02/[0-9]{2}/2017) (8|11)") %>%
-    dmap_at("interview_date", mdy) %>%
-    dmap_at("pm", ~ .x == "11") %>%
+           lcep = LCEP,
+           interview_date = `Interview Date`) %>%
+    mutate_at("interview_date", mdy_hm) %>%
+    mutate(pm = hour(interview_date) == "11",
+           day = as.Date(interview_date)) %>%
     group_by(interview_date, pm) %>%
+    arrange(last_name, .by_group = TRUE) %>%
     mutate(assignment = seq(n()),
            credentials = "PharmD Candidate")
 

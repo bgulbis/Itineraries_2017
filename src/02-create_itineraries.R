@@ -1,24 +1,22 @@
 # create itineraries
 
 library(tidyverse)
-library(stringr)
 library(lubridate)
 library(ReporteRs)
-
-
 
 interview_times <- read_rds("data/tidy/interview_times.Rds")
 interview_sessions <- read_csv("data/raw/interview_sessions.csv")
 interviewers <- read_csv("data/raw/interviewers.csv")
 
-interview_days <- list("day1" = "2017/02/13",
-                       "day2" = "2017/02/17",
-                       "day3" = "2017/02/20")
+interview_days <- c("day1" = "2018/02/05",
+                    "day2" = "2018/02/09",
+                    "day3" = "2018/02/19",
+                    "day4" = "2018/02/23")
 
 interviewer_assignments <- read_csv("data/raw/interviewer_assignments.csv") %>%
-    gather(key, value, day1:day3) %>%
-    dmap_at("key", str_replace_all, pattern = interview_days) %>%
-    dmap_at("key", ymd)
+    gather(key, value, day1:day4) %>%
+    mutate_at("key", str_replace_all, pattern = interview_days) %>%
+    mutate_at("key", ymd)
 
 for (i in 1:nrow(interview_times)) {
 # for(i in c(1:2, 7:9)) { # for testing
@@ -28,26 +26,21 @@ for (i in 1:nrow(interview_times)) {
     candidate <- paste(df$first_name, df$last_name)
     interview_date <- format(df$interview_date, "%A, %B %e, %Y")
 
+    start_time <- hours(0)
     if (!df$pm) {
-        start_time <- hm("08:00")
-        sid <- 3:7
+        sid <- 3:6
         sessions <- mutate(interview_sessions, interview_order = session_id)
     } else {
-        if (df$lcep) {
-            start_time <- hm("11:30")
-        } else {
-            start_time <- hm("11:15")
-        }
 
         sessions <- interview_sessions %>%
-            filter(!is.na(pm)) %>%
+            # filter(!is.na(pm)) %>%
             mutate(interview_order = pm) %>%
             arrange(interview_order)
-        sid <- 6:10
+        sid <- 5:8
     }
 
     assignments <- interviewer_assignments %>%
-        inner_join(df["interview_date"], by = c("key" = "interview_date")) %>%
+        inner_join(df[c("interview_date", "day")], by = c("key" = "day")) %>%
         filter(value)
 
     if (df$lcep) {
@@ -56,7 +49,7 @@ for (i in 1:nrow(interview_times)) {
         sessions <- filter(sessions, !lcep | is.na(lcep))
     }
 
-    sessions$interview_order[sid] <- sid[c(df$assignment:length(sid), 1:(df$assignment - 1))][1:5]
+    sessions$interview_order[sid] <- sid[c(df$assignment:length(sid), 1:(df$assignment - 1))][1:4]
 
     sessions <- arrange(sessions, interview_order)
 
@@ -98,6 +91,6 @@ for (i in 1:nrow(interview_times)) {
         addParagraph(interview_date, stylename = "Candidate", bookmark = "Date") %>%
         addFlexTable(tbl_itinerary, par.properties = parProperties(text.align = "center"))
 
-    file_name <- paste0("report/itineraries/", df$interview_date, "_", df$last_name, "_", df$first_name, ".docx")
+    file_name <- paste0("report/itineraries/", df$day, "_", df$last_name, "_", df$first_name, ".docx")
     writeDoc(mydoc, file = file_name)
 }

@@ -1,14 +1,13 @@
 # create schedule for each interview group
 
 library(tidyverse)
-library(stringr)
 library(lubridate)
 
 interview_times <- read_rds("data/tidy/interview_times.Rds") %>%
     arrange(interview_date, pm, assignment)
 
 interview_sessions <- read_csv("data/raw/interview_sessions.csv") %>%
-    filter(session_id >= 3, session_id <= 7)
+    filter(session_id >= 3, session_id <= 6)
 
 sched <- tibble(
     session_id = 0,
@@ -24,19 +23,15 @@ for (i in 1:nrow(interview_times)) {
 # for (i in 1:2) {
     df <- interview_times[i, ]
 
-    if (!df$pm) {
-        start_time <- hm("08:45")
+    if (df$pm) {
+        start_time <- hm("3:30")
     } else {
-        if (df$lcep) {
-            start_time <- hm("14:15")
-        } else {
-            start_time <- hm("15:00")
-        }
+        start_time <- hm("1:30")
     }
 
     sessions <- mutate(interview_sessions, interview_order = session_id)
-    sid <- 3:7
-    sessions$interview_order <- sid[c(df$assignment:length(sid), 1:(df$assignment - 1))][1:5]
+    sid <- 3:6
+    sessions$interview_order <- sid[c(df$assignment:length(sid), 1:(df$assignment - 1))][1:4]
 
     sessions <- arrange(sessions, interview_order)
 
@@ -51,7 +46,7 @@ for (i in 1:nrow(interview_times)) {
 
     group_sched <- times %>%
         select(session_id, session, start_time) %>%
-        mutate(interview_date = df$interview_date[1],
+        mutate(interview_date = df$day[1],
                pm = df$pm[1],
                last_name = df$last_name[1],
                first_name = df$first_name[1])
